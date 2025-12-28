@@ -21,8 +21,13 @@ class GenerateResponse(BaseModel):
 def build_triposr_command(png_path: Path, glb_path: Path) -> tuple[list[str], str | None]:
     template = os.getenv("TRIPOSR_CMD")
     if template:
+        variables = {
+            "image": str(png_path),
+            "output": str(glb_path),
+            "output_dir": str(glb_path.parent),
+        }
         parts = [
-            token.format(image=str(png_path), output=str(glb_path))
+            token.format(**variables)
             for token in shlex.split(template)
         ]
         return parts, os.getenv("TRIPOSR_CMD_CWD")
@@ -103,4 +108,4 @@ if __name__ == "__main__":
 
     host = os.getenv("TRIPOSR_HOST", "0.0.0.0")
     port = int(os.getenv("TRIPOSR_PORT", "8000"))
-    uvicorn.run("tools.triposr_server:app", host=host, port=port, reload=False)
+    uvicorn.run(app, host=host, port=port, reload=False)

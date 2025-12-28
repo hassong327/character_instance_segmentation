@@ -8,6 +8,9 @@ style
 *.mp4
 *.gif
 .DS_Store
+anime.jpg
+anime_cutout.png
+*_cutout.png
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

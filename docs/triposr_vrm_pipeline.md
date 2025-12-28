@@ -10,7 +10,7 @@ pip install fastapi uvicorn requests
 
 ```bash
 export TRIPOSR_REPO=/path/to/TripoSR
-export TRIPOSR_CMD="python run.py --image {image} --output {output}"
+export TRIPOSR_CMD="python run.py {image} --output-dir {output_dir} --model-save-format glb"
 python tools/triposr_server.py
 ```
 
@@ -26,7 +26,7 @@ curl -X POST "http://localhost:8000/generate?response_type=path" \
 !git clone https://github.com/VAST-AI/TripoSR.git /content/TripoSR
 
 %env TRIPOSR_REPO=/content/TripoSR
-%env TRIPOSR_CMD=python run.py --image {image} --output {output}
+%env TRIPOSR_CMD=python run.py {image} --output-dir {output_dir} --model-save-format glb
 
 !python /content/character_instance_segmentation/tools/triposr_server.py
 ```
