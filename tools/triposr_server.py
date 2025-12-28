@@ -35,12 +35,20 @@ def build_triposr_command(png_path: Path, glb_path: Path) -> tuple[list[str], st
     python_bin = os.getenv("TRIPOSR_PYTHON", "python")
     repo_dir = os.getenv("TRIPOSR_REPO", "./TripoSR")
     return (
-        [python_bin, "run.py", "--image", str(png_path), "--output", str(glb_path)],
+        [
+            python_bin,
+            "run.py",
+            str(png_path),
+            "--output-dir",
+            str(glb_path.parent),
+            "--model-save-format",
+            "glb",
+        ],
         repo_dir,
     )
 
 
-def run_triposr(png_path: Path, glb_path: Path) -> None:
+def run_triposr(png_path: Path, glb_path: Path) -> Path:
     command, cwd = build_triposr_command(png_path, glb_path)
     result = subprocess.run(
         command,
@@ -58,11 +66,28 @@ def run_triposr(png_path: Path, glb_path: Path) -> None:
                 "stderr": result.stderr[-2000:],
             },
         )
-    if not glb_path.exists():
+    if glb_path.exists():
+        return glb_path
+
+    output_dir = glb_path.parent
+    candidates = sorted(
+        output_dir.rglob("mesh.glb"),
+        key=lambda path: path.stat().st_mtime,
+        reverse=True,
+    )
+    if not candidates:
+        candidates = sorted(
+            output_dir.rglob("*.glb"),
+            key=lambda path: path.stat().st_mtime,
+            reverse=True,
+        )
+    if not candidates:
         raise HTTPException(
             status_code=500,
             detail="TripoSR completed but GLB output not found",
         )
+
+    return candidates[0]
 
 
 @app.get("/health")
@@ -91,7 +116,7 @@ async def generate_glb(
     png_path.write_bytes(content)
 
     try:
-        run_triposr(png_path, glb_path)
+        glb_path = run_triposr(png_path, glb_path)
     finally:
         if png_path.exists():
             png_path.unlink()

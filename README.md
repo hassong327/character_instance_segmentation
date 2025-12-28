@@ -12,9 +12,11 @@
   - `pip install mmdet==3.3.0 mmengine==0.10.5 opencv-python`
   - `pip install "numpy<2" "transformers<4.38"`
   - `pip install -r requirements.txt`
-- bash 설치 스크립트:
+- bash 설치 스크립트 (레포 루트에서 실행):
   - `chmod +x scripts/install_cuda118.sh`
   - `./scripts/install_cuda118.sh`
+  - `chmod +x scripts/install_triposr_root_venv.sh`
+  - `./scripts/install_triposr_root_venv.sh`
 - CUDA 12.x 사용 시 `mmcv` 다운로드 URL을 `cu121/torch2.1`로 변경 권장.
 - `requirements.txt` 안의 `git+https://...` 패키지는 빌드 도구가 필요할 수 있으니, Windows에서는 “Desktop development with C++” 설치 여부 확인 권장.
 
