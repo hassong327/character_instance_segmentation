@@ -2,7 +2,6 @@
 import numpy as np
 from typing import List, Union, Tuple
 import torch
-from utils.constants import COLOR_PALETTE
 from utils.constants import get_color
 import cv2
 
@@ -54,7 +53,10 @@ class AnimeInstances:
             self.character_tags = [''] * len(self)
         else:
             self.tags = tags
-            self.character_tags = character_tags
+            if character_tags is None:
+                self.character_tags = [''] * len(self)
+            else:
+                self.character_tags = character_tags
 
     @property
     def is_cuda(self):
@@ -79,7 +81,7 @@ class AnimeInstances:
 
     @property
     def is_empty(self):
-        return self.masks is None or len(self.masks) == 0\
+        return self.masks is None or len(self.masks) == 0
         
     def remove_duplicated(self):
         
@@ -136,8 +138,6 @@ class AnimeInstances:
                       draw_tags: bool = False,
                       draw_indices: List = None,
                       mask_alpha: float = 0.4):
-        
-        mask_alpha = 0.75
 
 
         drawed = img.copy()
@@ -211,24 +211,38 @@ class AnimeInstances:
     def to_tensor(self, device: str = 'cpu'):
         if self.is_empty:
             return self
-        elif self.is_tensor and self.masks.device == device:
+
+        target_device = torch.device(device)
+        if self.is_tensor:
+            if self.masks.device == target_device:
+                return self
+            self.masks = self.masks.to(target_device)
+            self.bboxes = self.bboxes.to(target_device)
+            self.scores = self.scores.to(target_device)
             return self
-        self.masks = torch.from_numpy(self.masks).to(device)
-        self.bboxes = torch.from_numpy(self.bboxes).to(device)
-        self.scores = torch.from_numpy(self.scores ).to(device)
+
+        self.masks = torch.as_tensor(self.masks, device=target_device)
+        self.bboxes = torch.as_tensor(self.bboxes, device=target_device)
+        self.scores = torch.as_tensor(self.scores, device=target_device)
         return self
     
     def to_numpy(self):
         if self.is_numpy:
             return self
-        if self.is_cuda:
-            self.masks = self.masks.cpu().numpy()
-            self.scores = self.scores.cpu().numpy()
-            self.bboxes = self.bboxes.cpu().numpy()
+        if isinstance(self.masks, torch.Tensor):
+            self.masks = self.masks.detach().cpu().numpy()
         else:
-            self.masks = self.masks.numpy()
-            self.scores = self.scores.numpy()
-            self.bboxes = self.bboxes.numpy()
+            self.masks = np.asarray(self.masks)
+
+        if isinstance(self.scores, torch.Tensor):
+            self.scores = self.scores.detach().cpu().numpy()
+        else:
+            self.scores = np.asarray(self.scores)
+
+        if isinstance(self.bboxes, torch.Tensor):
+            self.bboxes = self.bboxes.detach().cpu().numpy()
+        else:
+            self.bboxes = np.asarray(self.bboxes)
         return self
     
     def get_instance(self, ins_idx: int, out_type: str = None, device: str = None):
@@ -273,8 +287,10 @@ class AnimeInstances:
             oh, ow = masks.shape[2], masks.shape[3]
             hs, ws = h / oh, w / ow
             bboxes = self.bboxes.float()
-            bboxes[:, ::2] *= hs
-            bboxes[:, 1::2] *= ws
+            bboxes[:, 0] *= ws
+            bboxes[:, 2] *= ws
+            bboxes[:, 1] *= hs
+            bboxes[:, 3] *= hs
             self.bboxes = torch.round(bboxes).int()
             masks = torch.nn.functional.interpolate(masks, (h, w), mode=mode)
             self.masks = masks.squeeze(1) > 0.3

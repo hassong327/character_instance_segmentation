@@ -23,7 +23,4 @@ h5py
 
 # For Web UI
 gradio
-fastapi
-uvicorn
 requests
-mcp

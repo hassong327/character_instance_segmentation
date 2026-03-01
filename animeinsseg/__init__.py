@@ -55,7 +55,7 @@ def prepare_refine_batch(segmentations: np.ndarray, img: np.ndarray, max_batch_s
             batch = []
 
 
-VALID_REFINEMETHODS = {'animeseg', 'none'}
+VALID_REFINEMETHODS = {'animeseg', 'refinenet_isnet', 'none'}
 
 register_all_modules()
 
@@ -89,6 +89,7 @@ def animeseg_refine(det_pred: DetDataSample, img: np.ndarray, net: AnimeSegmenta
         mask = (mask > seg_thr)
         
         ins_masks = det_pred.pred_instances.masks
+        to_tensor = False
 
         if isinstance(ins_masks, torch.Tensor):
             tensor_device = ins_masks.device
@@ -185,7 +186,7 @@ def read_imglst_from_txt(filep) -> List[str]:
 class AnimeInsSeg:
 
     def __init__(self, ckpt: str, default_det_size: int = 640, device: str = None, 
-                 refine_kwargs: dict = {'refine_method': 'refinenet_isnet'},
+                 refine_kwargs: Optional[dict] = None,
                  tagger_path: str = 'models/wd-v1-4-swinv2-tagger-v2/model.onnx', mask_thr=0.3) -> None:
         self.ckpt = ckpt
         self.default_det_size = default_det_size
@@ -218,6 +219,8 @@ class AnimeInsSeg:
         self.refinenet_animeseg: AnimeSegmentation = None
         self.postprocess_refine: Callable = None
 
+        if refine_kwargs is None:
+            refine_kwargs = {'refine_method': 'refinenet_isnet'}
         if refine_kwargs is not None:
             self.set_refine_method(**refine_kwargs)
 
@@ -228,7 +231,7 @@ class AnimeInsSeg:
 
     def init_tagger(self, tagger_path: str = None):
         tagger_path = self.tagger_path if tagger_path is None else tagger_path
-        self.tagger = Tagger(self.tagger_path)
+        self.tagger = Tagger(tagger_path)
 
     def infer_tags(self, instances: AnimeInstances, img: np.ndarray, infer_grey: bool = False):
         if self.tagger is None:
@@ -560,18 +563,19 @@ class AnimeInsSeg:
             try:
                 instances, img = self._det_forward(img, test_pipeline, pred_score_thr)
             except Exception as e:
-                raise e
                 if isinstance(e, torch.cuda.OutOfMemoryError):
                     gc.collect()
                     torch.cuda.empty_cache()
                     torch.cuda.ipc_collect()
                     try:
                         instances, img = self._det_forward(img, test_pipeline, pred_score_thr)
-                    except:
+                    except Exception:
                         LOGGER.warning(f'cuda out of memory: {img_name}')
                         if isinstance(img, str):
                             img = cv2.imread(img)
                         instances = None
+                else:
+                    raise
 
             if instances is not None:
                 self.postprocess_results(instances, img)
