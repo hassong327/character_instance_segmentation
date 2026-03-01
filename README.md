@@ -65,3 +65,20 @@ python extract.py --img ./input.png --out ./result.png --det-size 512 --refine n
 
 - 모델 가중치: https://huggingface.co/dreMaz/AnimeInstanceSegmentation
 - 원본 프로젝트: https://github.com/CartoonSegmentation/CartoonSegmentation
+
+## 5. 원본 대비 차이점 (Diff Summary)
+
+이 레포는 `CartoonSegmentation` 원본을 그대로 복제한 것이 아니라,  
+**캐릭터 segmentation 추론 파이프라인만 남긴 경량화 포크**입니다.
+
+- 범위 축소:
+  - 원본의 3D Ken Burns / Style Editing / Web UI 경로는 제외
+  - 본 레포는 `extract.py` 중심의 segmentation 추론에 집중
+- 레포 구조 단순화:
+  - 원본의 `configs/`, `depth_modules/`, `anime_3dkenburns/`, `examples/`, `Web_UI/` 등 부가 구성은 미포함
+- 핵심 엔진 유지 + 안정성 보강:
+  - `animeinsseg` 코어 로직은 유지
+  - 텐서/넘파이 변환, bbox 리사이즈 축, 예외 처리(OOM fallback) 등 안정성 관련 코드 개선
+- 실행 동선 단순화:
+  - 단일 CLI로 `이미지 -> RGBA cutout PNG` 생성
+  - 예: `python extract.py --img ./input.png`
